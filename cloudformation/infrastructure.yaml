@@ -1,0 +1,291 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Builds a VPC with public subnets, an ALB, an ASG comprising of EC2 instances running NGinX and builds a FIS experiment template
+
+Parameters:
+  AMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Description: AMI to use for EC2 instances
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: 10.1.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags: 
+        - Key: purpose
+          Value: behave-fis
+        - Key: Name
+          Value: behave-fis-vpc
+
+  PublicSubneta:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: !Sub ${AWS::Region}a
+      CidrBlock: 10.1.3.0/24
+      MapPublicIpOnLaunch: true
+      Tags: 
+        - Key: purpose
+          Value: behave-fis
+        - Key: Name
+          Value: PublicSubneta
+      VpcId: !Ref Vpc
+
+  PublicSubnetb:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: !Sub ${AWS::Region}b
+      CidrBlock: 10.1.4.0/24
+      MapPublicIpOnLaunch: true
+      Tags: 
+        - Key: purpose
+          Value: behave-fis
+        - Key: Name
+          Value: PublicSubnetb
+      VpcId: !Ref Vpc
+
+  PublicSubnetc:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: !Sub ${AWS::Region}c
+      CidrBlock: 10.1.5.0/24
+      MapPublicIpOnLaunch: true
+      Tags: 
+        - Key: purpose
+          Value: behave-fis
+        - Key: Name
+          Value: PublicSubnetc
+      VpcId: !Ref Vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties: 
+      Tags: 
+        - Key: purpose
+          Value: behave-fis
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: 
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref Vpc
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties: 
+      Tags: 
+        - Key: purpose
+          Value: behave-fis
+      VpcId: !Ref Vpc
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicRouteTableAssoca:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !GetAtt PublicSubneta.SubnetId
+
+  PublicRouteTableAssocb:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !GetAtt PublicSubnetb.SubnetId
+
+  PublicRouteTableAssocc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !GetAtt PublicSubnetc.SubnetId
+
+  AlbSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: ALB Security Group
+      VpcId: !Ref Vpc
+      Tags: 
+        - Key: purpose
+          Value: behave-fis
+        - Key: Name
+          Value: behave-fis-ALB-SG
+
+  AlbSecurityGroupHTTPinbound:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !Ref AlbSecurityGroup
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: 0.0.0.0/0
+
+  InstanceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Instance Security Group
+      VpcId: !Ref Vpc
+      Tags: 
+        - Key: purpose
+          Value: behave-fis
+        - Key: Name
+          Value: behave-fis-Instance-SG
+
+  InstanceSecurityGroupHTTPinbound:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !Ref InstanceSecurityGroup
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      SourceSecurityGroupId: !Ref AlbSecurityGroup
+
+  Alb:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Name: behave-fis-alb
+      Scheme: internet-facing
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: '30'
+      Subnets:
+        - !Ref PublicSubneta
+        - !Ref PublicSubnetb
+        - !Ref PublicSubnetc
+      SecurityGroups:
+        - !Ref AlbSecurityGroup
+      Tags: 
+        - Key: purpose
+          Value: behave-fis
+
+  AlbListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref InstanceTg
+      LoadBalancerArn: !Ref Alb
+      Port: 80
+      Protocol: HTTP
+
+  InstanceTg:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      UnhealthyThresholdCount: 2
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: 200
+      Name: InstanceTG
+      Port: 80
+      Protocol: HTTP
+      VpcId: !Ref Vpc
+      Tags: 
+        - Key: purpose
+          Value: behave-fis
+      
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: BehaveFISLaunchTemplate
+      LaunchTemplateData:
+        ImageId: !Ref AMI
+        InstanceType: t3.micro
+        UserData:
+          Fn::Base64: |
+            #!/bin/bash
+            dnf update -y
+            dnf install nginx -y
+            systemctl start nginx
+            systemctl enable nginx
+        SecurityGroupIds:
+          - !Ref InstanceSecurityGroup
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      MinSize: 3
+      MaxSize: 6
+      DesiredCapacity: 3
+      AvailabilityZones:   # Update with your desired availability zones
+        - !Sub ${AWS::Region}a
+        - !Sub ${AWS::Region}b
+        - !Sub ${AWS::Region}c
+      VPCZoneIdentifier:   # Update with your subnet IDs
+        - !Ref PublicSubneta
+        - !Ref PublicSubnetb
+        - !Ref PublicSubnetc
+      TargetGroupARNs:
+        - !Ref InstanceTg
+      Tags:
+        - Key: Name
+          Value: behave-fis-asg
+          PropagateAtLaunch: true
+        - Key: purpose
+          Value: behave-fis
+          PropagateAtLaunch: true
+
+  FisExperimentTemplate:
+    Type: AWS::FIS::ExperimentTemplate
+    Properties: 
+      Description: Terminate an instance in my ASG selected by tag
+      Actions:
+        terminateInstance:
+          ActionId: 'aws:ec2:terminate-instances'
+          Targets:
+            Instances: OneRandomInstance
+      Targets:
+        OneRandomInstance:
+          ResourceTags:
+            'Name': 'behave-fis-asg'
+          ResourceType: aws:ec2:instance
+          SelectionMode: 'COUNT(1)'
+      StopConditions:
+        - Source: 'none'
+      RoleArn:
+        !GetAtt FisRole.Arn
+      Tags:
+        Name: TerminateInstance
+        Purpose: behave-fis
+
+  FisRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement: 
+          - Effect: Allow
+            Principal:
+              Service: fis.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: FISRoleEC2Actions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:RebootInstances
+                  - ec2:StopInstances
+                  - ec2:StartInstances
+                  - ec2:TerminateInstances
+                Resource: !Sub arn:aws:ec2:*:${AWS::AccountId}:instance/*
+
+Outputs:
+  AlbHostname:
+    Value: !GetAtt Alb.DNSName
+  FisExperimentId:
+    Value: !GetAtt FisExperimentTemplate.Id
