@@ -7,18 +7,18 @@ Website availability tests are executed from your machine in the sample code use
 
 # Environment preparation
 
-Clone the git repository aws-fis-behaviour-driven-chaos that contains the blog resources using the below command:
+Clone the git repository [aws-fis-behaviour-driven-chaos](https://github.com/aws-samples/aws-fis-behaviour-driven-chaos) that contains the blog resources using the below command:
     ```shell
     git clone https://github.com/aws-samples/aws-fis-behaviour-driven-chaos.git
     ```
 > **recommended** - create a new, clean Python virtual environment somewhere and activate it
-  
     ```shell
     python3 -m venv behavefisvenv
     source behavefisvenv/bin/activate
     ```
 
 # Deployment Steps
+
 To be carried out from the root of the repo:
 
 1. Install the Python dependencies in the venv
