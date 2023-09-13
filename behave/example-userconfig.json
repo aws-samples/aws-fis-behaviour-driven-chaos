@@ -1,0 +1,6 @@
+{
+    "aws_region": "eu-west-1",
+    "website_hostname": "behave-fis-alb-1700565230.eu-west-1.elb.amazonaws.com",
+    "fis_experiment_id": "EXTiExyL4ftfoVJ",
+    "target_tag": "Name:behave-fis-asg"
+}
