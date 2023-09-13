@@ -1,65 +1,54 @@
 # Pre-requisites
-Recent and working version of Python installed (i.e. 3.9 or later)
-Stable internet connection - website availability tests are executed from your machine in the sample code used in this blog. If you are traversing a busy corporate proxy or a network connection that is not stable then it can impact the results.
+Following this blog post will incur some costs for AWS services. To deploy the chaos experiment and test application you will need an [AWS account](https://aws.amazon.com/premiumsupport/knowledge-center/create-and-activate-aws-account/). We also assume that you are using [AWS CloudShell](https://console.aws.amazon.com/cloudshell/home) or have the AWS CLI [installed](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) and have [configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html) a profile with administrator permissions.
 
+Please ensure you have installed a recent and working version of Python (i.e. 3.9 or later).
+
+Website availability tests are executed from your machine in the sample code used in this blog. If you are traversing a busy corporate proxy or a network connection that is not stable then it can impact the results.
+
+# Environment preparation
+
+Clone the git repository aws-fis-behaviour-driven-chaos that contains the blog resources using the below command:
+    ```shell
+    git clone https://github.com/aws-samples/aws-fis-behaviour-driven-chaos.git
+    ```
 > **recommended** - create a new, clean Python virtual environment somewhere and activate it
   
-```shell
-python3 -m venv behavefisvenv
-source behavefisvenv/bin/activate
-```
+    ```shell
+    python3 -m venv behavefisvenv
+    source behavefisvenv/bin/activate
+    ```
 
-# Steps
+# Deployment Steps
 To be carried out from the root of the repo:
+
 1. Install the Python dependencies in the venv
     ```shell
     pip install -r requirements.txt
     ```
-2. Create the test stack and wait for completion
+2. Create the test stack and wait for completion:
     ```shell
     aws cloudformation create-stack --stack-name my-chaos-stack --template-body file://cloudformation/infrastructure.yaml --region=eu-west-1 --capabilities CAPABILITY_IAM
-
     aws cloudformation wait stack-create-complete --stack-name my-chaos-stack --region=eu-west-1
     ```
 
-3. Behave User Params Setup
-   ### Automated userconfig
-   If you have ```jq``` installed you can run this to create a user config automatically or follow below to do it manually
-    ```shell
-    aws cloudformation describe-stacks --stack-name my-chaos-stack --region eu-west-1 | \
-      jq -r '.Stacks[0] | {website_hostname: .Outputs[] | select(.OutputKey == "AlbHostname").OutputValue, fis_experiment_id: .Outputs[] | select(.OutputKey == "FisExperimentId").OutputValue}' > extracted-values.json && jq -s '.[0] + .[1]' behave/example-userconfig.json extracted-values.json > behave/userconfig.json
-    ```
-
-    ### Manual userconfig
-    Get the stack outputs
+3. Once the deployment reaches a create-complete state, retrieve the stack outputs: 
 
     ```shell
     aws cloudformation describe-stacks --stack-name my-chaos-stack --region=eu-west-1
     ```
-    - Copy the OutputValue of the stack Outputs for **AlbHostname** and **FisExperimentId** into the ```behave/userconfig.json```, replacing the placeholder values for website_hostname and fis_experiment_id respectively
 
-    - Replace the region value in the behave/userconfig.json file with the region you built the stack in
-4. paste AWS credentials into your environment (or make them accessible to boto in one of the usual ways)
-5. change directory into behave/ directory
+4. Copy the OutputValue of the stack Outputs for **AlbHostname** and **FisExperimentId** into the ```behave/userconfig.json```, replacing the placeholder values for website_hostname and fis_experiment_id respectively
+
+5.  Replace the region value in the ```behave/userconfig.json``` file with the region you built the stack in
+6.  change directory into behave/
     ```shell
     cd behave/
     ```
-6. execute behave: behave
+7. execute behave:
     ```shell
-    behave -f allure_behave.formatter:AllureFormatter -o .outputs
+    behave
     ```
-7. locust results will appear in the behave folder
-8. at you CLI you should see output similar to ![behave](behave_output.png "Behave Output")
-
-9. (**Optional**) If you want to see a test report in Allure format, you can install allure on MacOS with 
-    ```shell
-    brew install allure
-    ```
-    And you can view the report with 
-    ```shell
-    allure serve .outputs
-    ```
-    ![Allure Report](allure_report.png)
+8. Once execution completes, Locust results will appear inside the behave folder, output similar to the below will be shown at the CLI. ![behave](behave_output.png "Behave Output")
 
 # Clean-up
 To delete the stack run
