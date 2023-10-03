@@ -67,7 +67,7 @@ six==1.16.0
 sympy==1.12
 typing_extensions==4.7.1
 tzdata==2023.3
-urllib3==1.26.16
+urllib3==1.26.17
 verboselogs==1.7
 Werkzeug==2.3.7
 zipp==3.16.2
