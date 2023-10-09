@@ -1,5 +1,4 @@
 attrs==23.1.0
-allure-behave==2.13.2
 aws-sam-translator==1.73.0
 awscli==1.29.30
 awscliv2==2.2.0
