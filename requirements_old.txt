@@ -1,3 +1,0 @@
-locust
-boto3
-behave

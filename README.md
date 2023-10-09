@@ -40,9 +40,10 @@ To be carried out from the root of the repo:
     aws cloudformation describe-stacks --stack-name my-chaos-stack --region=eu-west-1
     ```
 
-4. Copy the OutputValue of the stack Outputs for **AlbHostname** and **FisExperimentId** into the ```behave/userconfig.json```, replacing the placeholder values for website_hostname and fis_experiment_id respectively
+4. Copy the OutputValue of the stack Outputs for **AlbHostname** and **FisExperimentId** into the ```behave/userconfig.json```, replacing the placeholder values for website_hostname and fis_experiment_id respectively.
 
-5.  Replace the region value in the ```behave/userconfig.json``` file with the region you built the stack in
+5.  Replace the region value in the ```behave/userconfig.json``` file with the region you built the stack in (if altered in step 2).
+
 6.  change directory into behave/
     ```shell
     cd behave/
@@ -52,6 +53,8 @@ To be carried out from the root of the repo:
     behave
     ```
 8. Once execution completes, Locust results will appear inside the behave folder, output similar to the below will be shown at the CLI. ![behave](behave_output.png "Behave Output")
+
+There are a few different ways to format your results when using Behave so that they are more easy to pull into a report, Allure is a nice example; see the [official documentation](https://behave.readthedocs.io/en/stable/formatters.html) for reference.
 
 # Clean-up
 To delete the stack run
