@@ -52,7 +52,9 @@ To be carried out from the root of the repo:
     ```shell
     behave
     ```
-8. Once execution completes, Locust results will appear inside the behave folder, output similar to the below will be shown at the CLI. ![behave](behave_output.png "Behave Output")
+8. Once execution completes, Locust results will appear inside the behave folder, output similar to the below will be shown at the CLI. 
+
+![behave](behave_output.png "Behave Output")
 
 There are a few different ways to format your results when using Behave so that they are more easy to pull into a report, Allure is a nice example; see the [official documentation](https://behave.readthedocs.io/en/stable/formatters.html) for reference.
 
