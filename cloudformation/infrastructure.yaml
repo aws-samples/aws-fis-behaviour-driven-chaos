@@ -6,6 +6,9 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Description: AMI to use for EC2 instances
     Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+  AllowedCidr:
+    Type: String
+    Description: CIDR allowed in security group for FrontEnd access
 
 Resources:
   Vpc:
@@ -124,7 +127,7 @@ Resources:
       IpProtocol: tcp
       FromPort: 80
       ToPort: 80
-      CidrIp: 0.0.0.0/0
+      CidrIp: !Ref AllowedCidr
 
   AlbSecurityGroupEgress:
     Type: AWS::EC2::SecurityGroupEgress
@@ -134,7 +137,7 @@ Resources:
       IpProtocol: tcp
       FromPort: 80
       ToPort: 80
-      CidrIp: 10.1.0.0/16
+      DestinationSecurityGroupId: !Ref InstanceSecurityGroup
 
   InstanceSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
@@ -161,9 +164,11 @@ Resources:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
       GroupId: !Ref InstanceSecurityGroup
-      Description: Allow all outbound for instance build etc.
+      Description: Allow https outbound for instance build etc.
+      FromPort: 443
+      ToPort: 443
       CidrIp: 0.0.0.0/0
-      IpProtocol: '-1'
+      IpProtocol: tcp
 
   Alb:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
