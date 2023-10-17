@@ -119,11 +119,22 @@ Resources:
   AlbSecurityGroupHTTPinbound:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
+      Description: Allow http inbound
       GroupId: !Ref AlbSecurityGroup
       IpProtocol: tcp
       FromPort: 80
       ToPort: 80
       CidrIp: 0.0.0.0/0
+
+  AlbSecurityGroupEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref AlbSecurityGroup
+      Description: Allow elb healthchecks
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: 10.1.0.0/16
 
   InstanceSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
@@ -139,11 +150,20 @@ Resources:
   InstanceSecurityGroupHTTPinbound:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
+      Description: Allow http inbound
       GroupId: !Ref InstanceSecurityGroup
       IpProtocol: tcp
       FromPort: 80
       ToPort: 80
       SourceSecurityGroupId: !Ref AlbSecurityGroup
+
+  InstanceSecurityGroupEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref InstanceSecurityGroup
+      Description: Allow all outbound for instance build etc.
+      CidrIp: 0.0.0.0/0
+      IpProtocol: '-1'
 
   Alb:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
